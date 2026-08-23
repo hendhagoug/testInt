@@ -8,18 +8,18 @@ jobs:
     steps:
       - name: Run TestFlair tests
         run: |
-          RUN=$(curl -s -X POST "https://uat-ai-testing.ntgcloud.net/api/github/ci/run" \
+          RUN=$(curl -s -X POST "https://testflair.ai/api/github/ci/run" \
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"testScriptIds":["7b6f2312-d835-4695-a7b0-729fd2bc7195"],"executionLanguage":"JAVA"}')
+            -d '{"testScriptIds":["4720fdea-a376-43c6-9e3d-006745b8b0f0"],"executionLanguage":"JAVA"}')
           LOG_IDS=$(echo "$RUN" | jq -r '.data.run.runs[].executionLogId')
           if [ -z "$LOG_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
           for LOG_ID in $LOG_IDS; do
-            until STATUS=$(curl -s "https://uat-ai-testing.ntgcloud.net/api/github/ci/run/$LOG_ID" \
+            until STATUS=$(curl -s "https://testflair.ai/api/github/ci/run/$LOG_ID" \
                   -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" | jq -r '.data.status.terminal'); \
                   [ "$STATUS" = "true" ]; do sleep 10; done
-            RESULT=$(curl -s "https://uat-ai-testing.ntgcloud.net/api/github/ci/run/$LOG_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
+            RESULT=$(curl -s "https://testflair.ai/api/github/ci/run/$LOG_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
             echo "$RESULT" | jq -r '.data.status | "Status: \(.status)  |  passed=\(.passed)  |  \(.passedTests // 0)/\(.totalTests // 0) passed, \(.failedTests // 0) failed"'
             if [ "$(echo "$RESULT" | jq -r '.data.status.passed')" != "true" ]; then
               FAILED=1
