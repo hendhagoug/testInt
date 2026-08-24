@@ -8,18 +8,18 @@ jobs:
     steps:
       - name: Run TestFlair tests
         run: |
-          RUN=$(curl -s -X POST "http://localhost:4200/api/github/ci/run" \
+          RUN=$(curl -s -X POST "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run" \
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"testRunIds":["a1585b2d-9832-4c4e-88bc-21e9a78ba42d"]}')
+            -d '{"testRunIds":["85c582d7-8348-4b16-b362-50dd7dcb8aa4"]}')
           SESSION_IDS=$(echo "$RUN" | jq -r '.data.run.runs[].sessionId // empty')
           if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
           for SESSION_ID in $SESSION_IDS; do
-            until STATUS=$(curl -s "http://localhost:4200/api/github/ci/run/$SESSION_ID" \
+            until STATUS=$(curl -s "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run/$SESSION_ID" \
                   -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" | jq -r '.data.status.terminal'); \
                   [ "$STATUS" = "true" ]; do sleep 10; done
-            RESULT=$(curl -s "http://localhost:4200/api/github/ci/run/$SESSION_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
+            RESULT=$(curl -s "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run/$SESSION_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
             echo "$RESULT" | jq -r '.data.status | "Status: \(.status)  |  passed=\(.passed)  |  \(.passedCases // 0)/\(.totalCases // 0) passed, \(.failedCases // 0) failed, \(.blockedCases // 0) blocked"'
             if [ "$(echo "$RESULT" | jq -r '.data.status.passed')" != "true" ]; then
               FAILED=1
