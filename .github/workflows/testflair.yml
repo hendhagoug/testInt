@@ -11,7 +11,7 @@ jobs:
           RUN=$(curl -s -X POST "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run" \
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"testRunIds":["d169f3f2-237c-4113-8e1a-3d21eae61eea"]}')
+            -d '{"testRunIds":["b6cabde4-564c-45b9-915c-b4daeb83f673"]}')
           SESSION_IDS=$(echo "$RUN" | jq -r '(.data.run.runs // [])[].sessionId // empty')
           if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
