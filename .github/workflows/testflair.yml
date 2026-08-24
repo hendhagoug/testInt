@@ -12,7 +12,7 @@ jobs:
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"testRunIds":["85c582d7-8348-4b16-b362-50dd7dcb8aa4"]}')
-          SESSION_IDS=$(echo "$RUN" | jq -r '.data.run.runs[].sessionId // empty')
+          SESSION_IDS=$(echo "$RUN" | jq -r '(.data.run.runs // [])[].sessionId // empty')
           if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
           for SESSION_ID in $SESSION_IDS; do
