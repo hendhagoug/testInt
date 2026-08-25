@@ -11,7 +11,7 @@ jobs:
           RUN=$(curl -s -X POST "https://dev-ai-testing.ntgcloud.net/api/github/ci/run" \
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"testRunIds":["370d7887-ac36-4d4b-b258-a5d84ba9d605"]}')
+            -d '{"testRunIds":["8874003e-fa61-4e23-944f-9cabd6fce27c"]}')
           SESSION_IDS=$(echo "$RUN" | jq -r '(.data.run.runs // [])[].sessionId // empty')
           if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
