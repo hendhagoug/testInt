@@ -1,0 +1,33 @@
+name: TestFlair
+on: [workflow_dispatch]
+jobs:
+  testflair:
+    runs-on: ubuntu-latest
+    env:
+      TESTFLAIR_CI_TOKEN: ${{ secrets.TESTFLAIR_CI_TOKEN }}
+    steps:
+      - name: Run TestFlair tests
+        run: |
+          RUN=$(curl -s -X POST "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run" \
+            -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"testRunIds":["f2a24de7-99b9-4612-bace-f27ad14d68d2"]}')
+          SESSION_IDS=$(echo "$RUN" | jq -r '(.data.run.runs // [])[].sessionId // empty')
+          if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
+          FAILED=0
+          for SESSION_ID in $SESSION_IDS; do
+            until STATUS=$(curl -s "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run/$SESSION_ID" \
+                  -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" | jq -r '.data.status.terminal'); \
+                  [ "$STATUS" = "true" ]; do sleep 10; done
+            RESULT=$(curl -s "https://magnify-posing-enquirer.ngrok-free.dev/api/github/ci/run/$SESSION_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
+            echo "$RESULT" | jq -r '.data.status | "Status: \(.status)  |  passed=\(.passed)  |  \(.passedCases // 0)/\(.totalCases // 0) passed, \(.failedCases // 0) failed, \(.blockedCases // 0) blocked"'
+            if [ "$(echo "$RESULT" | jq -r '.data.status.passed')" != "true" ]; then
+              FAILED=1
+              echo "── Why it failed ─────────────────────────────"
+              echo "$RESULT" | jq -r '.data.status.failureReason // "No reason reported."'
+              echo "── Failed cases ──────────────────────────────"
+              echo "$RESULT" | jq -r '(.data.status.failedTestDetails // [])[] | "✗ \(.name)\n    \(.message // "")"'
+            fi
+          done
+          if [ "$FAILED" != "0" ]; then exit 1; fi
+          echo "✓ All TestFlair runs passed"
