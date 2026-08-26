@@ -8,27 +8,25 @@ jobs:
     steps:
       - name: Run TestFlair tests
         run: |
-          RUN=$(curl -s -X POST "https://uat-ai-testing.ntgcloud.net/api/github/ci/run" \
+          RUN=$(curl -s -X POST "http://localhost:4200/api/github/ci/run" \
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"testScriptIds":["7b6f2312-d835-4695-a7b0-729fd2bc7195"],"executionLanguage":"JAVA"}')
-          LOG_IDS=$(echo "$RUN" | jq -r '.data.run.runs[].executionLogId')
-          if [ -z "$LOG_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
+            -d '{"testRunIds":["f2a24de7-99b9-4612-bace-f27ad14d68d2"]}')
+          SESSION_IDS=$(echo "$RUN" | jq -r '(.data.run.runs // [])[].sessionId // empty')
+          if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
-          for LOG_ID in $LOG_IDS; do
-            until STATUS=$(curl -s "https://uat-ai-testing.ntgcloud.net/api/github/ci/run/$LOG_ID" \
+          for SESSION_ID in $SESSION_IDS; do
+            until STATUS=$(curl -s "http://localhost:4200/api/github/ci/run/$SESSION_ID" \
                   -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" | jq -r '.data.status.terminal'); \
                   [ "$STATUS" = "true" ]; do sleep 10; done
-            RESULT=$(curl -s "https://uat-ai-testing.ntgcloud.net/api/github/ci/run/$LOG_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
-            echo "$RESULT" | jq -r '.data.status | "Status: \(.status)  |  passed=\(.passed)  |  \(.passedTests // 0)/\(.totalTests // 0) passed, \(.failedTests // 0) failed"'
+            RESULT=$(curl -s "http://localhost:4200/api/github/ci/run/$SESSION_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
+            echo "$RESULT" | jq -r '.data.status | "Status: \(.status)  |  passed=\(.passed)  |  \(.passedCases // 0)/\(.totalCases // 0) passed, \(.failedCases // 0) failed, \(.blockedCases // 0) blocked"'
             if [ "$(echo "$RESULT" | jq -r '.data.status.passed')" != "true" ]; then
               FAILED=1
               echo "── Why it failed ─────────────────────────────"
               echo "$RESULT" | jq -r '.data.status.failureReason // "No reason reported."'
-              echo "── Failed tests ──────────────────────────────"
+              echo "── Failed cases ──────────────────────────────"
               echo "$RESULT" | jq -r '(.data.status.failedTestDetails // [])[] | "✗ \(.name)\n    \(.message // "")"'
-              echo "── Log tail ──────────────────────────────────"
-              echo "$RESULT" | jq -r '(.data.status.logTail // [])[]'
             fi
           done
           if [ "$FAILED" != "0" ]; then exit 1; fi
