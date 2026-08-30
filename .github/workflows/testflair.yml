@@ -8,18 +8,18 @@ jobs:
     steps:
       - name: Run TestFlair tests
         run: |
-          RUN=$(curl -s -X POST "https://dev-ai-testing.ntgcloud.net/api/github/ci/run" \
+          RUN=$(curl -s -X POST "https://uat-ai-testing.ntgcloud.net/api/github/ci/run" \
             -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"testRunIds":["8874003e-fa61-4e23-944f-9cabd6fce27c"]}')
+            -d '{"testRunIds":["a813194d-8306-40e8-875d-f47723863443"]}')
           SESSION_IDS=$(echo "$RUN" | jq -r '(.data.run.runs // [])[].sessionId // empty')
           if [ -z "$SESSION_IDS" ]; then echo "No runs started:"; echo "$RUN"; exit 1; fi
           FAILED=0
           for SESSION_ID in $SESSION_IDS; do
-            until STATUS=$(curl -s "https://dev-ai-testing.ntgcloud.net/api/github/ci/run/$SESSION_ID" \
+            until STATUS=$(curl -s "https://uat-ai-testing.ntgcloud.net/api/github/ci/run/$SESSION_ID" \
                   -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN" | jq -r '.data.status.terminal'); \
                   [ "$STATUS" = "true" ]; do sleep 10; done
-            RESULT=$(curl -s "https://dev-ai-testing.ntgcloud.net/api/github/ci/run/$SESSION_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
+            RESULT=$(curl -s "https://uat-ai-testing.ntgcloud.net/api/github/ci/run/$SESSION_ID" -H "X-TestFlair-CI-Token: $TESTFLAIR_CI_TOKEN")
             echo "$RESULT" | jq -r '.data.status | "Status: \(.status)  |  passed=\(.passed)  |  \(.passedCases // 0)/\(.totalCases // 0) passed, \(.failedCases // 0) failed, \(.blockedCases // 0) blocked"'
             if [ "$(echo "$RESULT" | jq -r '.data.status.passed')" != "true" ]; then
               FAILED=1
